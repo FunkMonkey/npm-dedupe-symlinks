@@ -2,12 +2,18 @@
   "name": "npm-dedupe-symlinks",
   "version": "0.1.0",
   "license": "private",
+
   "main": "build/index.js",
   "scripts": {
     "start": "node build/index.js",
     "build": "gulp build",
     "watch:build": "gulp watch:build"
   },
+
+  "bin": {
+    "npm-dedupe-symlinks": "./bin/npm-dedupe-symlinks.js"
+  },
+
   "devDependencies": {
     "gulp": "3.9.0",
     "gulp-babel": "6.1.1",
