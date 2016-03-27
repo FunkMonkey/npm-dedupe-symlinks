@@ -1,9 +1,24 @@
 {
   "name": "npm-dedupe-symlinks",
-  "version": "0.1.0",
-  "license": "private",
+  "version": "0.2.0",
+
+  "description": "Dedupes a package even if it contains symbolic links",
+  "keywords": ["npm", "dedupe", "symlinks"],
+  "author": "AndSelm <and.selm@gmail.com>",
+  "license": "MIT",
+  "preferGlobal": true,
+
+  "repository": {
+     "type": "git",
+     "url": "git@github.com:FunkMonkey/npm-dedupe-symlinks.git"
+   },
+  "homepage": "https://github.com/FunkMonkey/npm-dedupe-symlinks",
+  "bugs": {
+    "url": "https://github.com/FunkMonkey/npm-dedupe-symlinks/issues"
+  },
 
   "main": "build/index.js",
+
   "scripts": {
     "start": "node build/index.js",
     "build": "gulp build",
@@ -21,7 +36,7 @@
     "babel-preset-es2015": "6.3.13"
   },
   "dependencies": {
-    "fs-extra": "^0.26.7",
+    "fs-extra": "0.26.7",
     "rx": "4.1.0"
   }
 }

@@ -47,6 +47,7 @@ npm run watch:build
 
 1. unlink linked modules (only on the first level)
 2. create an empty directory in its place
+3. copy the `package.json` from the link's target to the empty directory
 3. move the `node_modules` directory from the link's target to the empty directory
 4. run `npm dedupe`
 5. move the module's deduped `node_modules` directory (if it still exists) back
