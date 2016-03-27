@@ -26,7 +26,6 @@ npm install -g npm-dedupe-symlinks
 
 cd /to/the/package/i/want/to/dedupe
 
-# windows users should make sure they run the command in an elevated command prompt
 npm-dedupe-symlinks
 ```
 If the command fails, you may need to re-create your symbolic links. Dependencies
@@ -50,10 +49,6 @@ It uses [RxJS](https://github.com/Reactive-Extensions/RxJS) internally.
 #### Moving the `node_modules` directory is slow
 
 Make sure everything is on the same volume.
-
-#### I am getting a permissions error
-
-Windows users should make sure they run the command in an elevated command prompt.
 
 ### TODO
 

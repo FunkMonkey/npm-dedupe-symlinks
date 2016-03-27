@@ -124,7 +124,7 @@ export default function dedupe( dirPath, linkedModules ) {
     .toArray()
 
     // re-create symlinks
-    .flatMap( () => $allSymlinks.flatMap( link => symlink( link.target, link.path, 'dir' ) ) )
+    .flatMap( () => $allSymlinks.flatMap( link => symlink( link.target, link.path, 'junction' ) ) )
     .toArray()
     .map( () => "DONE" );
 
