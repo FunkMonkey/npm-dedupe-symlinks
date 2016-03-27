@@ -63,5 +63,3 @@ Make sure everything is on the same volume.
 ### TODO
 
 - write some tests
-- probably copy `package.json` as well (might be necessary for deduping in certain
-  scenarios)

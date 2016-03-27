@@ -9,9 +9,12 @@ import observableFromNodeCallback from './observableFromNodeCallback';
 const symlink = observableFromNodeCallback( fs.symlink );
 const unlink = observableFromNodeCallback( fs.unlink );
 const move = observableFromNodeCallback( fs.move );
+const copy = observableFromNodeCallback( fs.copy );
 const ensureDir = observableFromNodeCallback( fs.ensureDir );
 const remove = observableFromNodeCallback( fs.remove );
 const exists = ( path ) => Rx.Observable.fromCallback( fs.stat, fs, (err, result) => result == null ? false : true )( path ); // TODO check for EOENT
+
+const info = console.info.bind( console );
 
 /**
  * Moves the `node_modules` sub-folder from one directory to another
@@ -23,11 +26,24 @@ function moveNodeModules( from, to ) {
   const fromPath = path.join( from, "node_modules" );
   const toPath = path.join( to, "node_modules" );
 
-  return exists( fromPath ).flatMap( doesExist => {
-    return doesExist ?
-      ensureDir( path.dirname( toPath )).flatMap( () => move(fromPath, toPath) ) :
-      Rx.Observable.empty();
-  } );
+  return exists( fromPath )
+    .flatMap( doesExist => doesExist ? move(fromPath, toPath)
+                                     : Rx.Observable.empty() );
+}
+
+/**
+ * Moves the `package.json` from one directory to another
+ * @param  {string}      from
+ * @param  {string}      to
+ * @return {Observable}        Empty or trash.
+ */
+function copyPackageJSON( from, to ) {
+  const fromPath = path.join( from, "package.json" );
+  const toPath = path.join( to, "package.json" );
+
+  return exists( fromPath )
+    .flatMap( doesExist => doesExist ? copy(fromPath, toPath)
+                                     : Rx.Observable.empty() );
 }
 
 // TODO: don't log to the console
@@ -39,14 +55,14 @@ function moveNodeModules( from, to ) {
  */
 function spawnNPMDedupe( dirPath ) {
   return Rx.Observable.create( observer => {
-    console.log( "deduping", dirPath );
+    info( "deduping", dirPath );
 
     // we need 'shell' for windows
     const ls = child_process.spawn( 'npm', ['dedupe'], { cwd: dirPath, env: process.env, shell: true } );
     observer.onNext( ls );
 
     ls.stdout.on( 'data', data => {
-      console.log( data.toString() );
+      info( data.toString() );
     } );
 
     ls.stderr.on( 'data', data => {
@@ -54,7 +70,7 @@ function spawnNPMDedupe( dirPath ) {
     });
 
     ls.on( 'close', code => {
-      console.log( `'npm dedupe' exited with code ${code}` );
+      info( `'npm dedupe' exited with code ${code}` );
       if( code === 0 )
         observer.onCompleted();
       else
@@ -66,7 +82,7 @@ function spawnNPMDedupe( dirPath ) {
 
 
 // TODO: don't log to the console
-// TODO: don't allow multiple uses of same symlink source
+// TODO: prevent duplication calculations ($allSymlinks)
 /**
  * Performs the actuall deduplication (including moving `node_modules`) in the
  * given directory for the given symlinked modules.
@@ -93,40 +109,49 @@ export default function dedupe( dirPath, linkedModules ) {
 
   const $allSymlinks = Rx.Observable.merge( $scopeSymlinks, $symlinkedModules);
 
-  // TODO: figure out if there is a better way in rx to have a step-by-step process
-  // where subscriptions only happen after each step (maybe concat or concatMap)
-  const $done =
-     // unlink symbolic links
-     $allSymlinks
-    .flatMap( link => unlink( link.path ) )
-    .toArray()
+  const tasks = [
+    // unlink symbolic links
+    $allSymlinks
+      .tap( link => info( `unlinking '${link.path}' from '${link.target}'` ) )
+      .flatMap( link => unlink( link.path ) ),
+
+    // creating empty directory for every module
+    $allModules
+      .tap( mod => info( `creating directory '${mod.path}'` ) )
+      .flatMap( mod => ensureDir( path.dirname( mod.path ) ) ),
+
+    // copying package.json into directory structure that will be deduped
+    $allModules
+      .tap( mod => info( `copying package.json from '${mod.target}' to '${mod.path}'` ) )
+      .flatMap( mod => copyPackageJSON( mod.target, mod.path ) ),
 
     // move node_modules into directory structure that will be deduped
-    .flatMap( () =>
-      $allModules
-        .tap( mod => console.log( `moving node_modules from ${mod.target} to ${mod.path}` ) )
-        .flatMap( mod => moveNodeModules( mod.target, mod.path ) ) )
-    .toArray()
+    $allModules
+      .tap( mod => info( `moving node_modules from '${mod.target}' to '${mod.path}'` ) )
+      .flatMap( mod => moveNodeModules( mod.target, mod.path ) ),
 
-    // dedupe
-    .flatMap( () => spawnNPMDedupe( dirPath ) )
-    .toArray()
+    spawnNPMDedupe( dirPath ),
 
     // move deduped node_modules back into its original module
-    .flatMap( () =>
-      $allModules
-        .tap( mod => console.log( `moving node_modules from ${mod.path} to ${mod.target}` ) )
-        .flatMap( mod => moveNodeModules( mod.path, mod.target ) ) )
-    .toArray()
+    $allModules
+      .tap( mod => info( `moving node_modules from '${mod.path}' to '${mod.target}'` ) )
+      .flatMap( mod => moveNodeModules( mod.path, mod.target ) ),
 
     // remove created folder structure
-    .flatMap( () => $allSymlinks.flatMap( link => remove( link.path ) ) )
-    .toArray()
+    $allSymlinks
+      .tap( link => info( `removing directory '${link.path}'` ) )
+      .flatMap( link => remove( link.path ) ),
 
     // re-create symlinks
-    .flatMap( () => $allSymlinks.flatMap( link => symlink( link.target, link.path, 'junction' ) ) )
-    .toArray()
-    .map( () => "DONE" );
+    $allSymlinks
+      .tap( link => info( `relinking '${link.path}' to '${link.target}'` ) )
+      .flatMap( link => symlink( link.target, link.path, 'junction' ) ),
 
-  return $done;
+    Rx.Observable.just( 'DONE' )
+  ];
+
+  // executing the tasks
+  return Rx.Observable.fromArray( tasks )
+    .concatMap( o => o )
+    .last();
 }
