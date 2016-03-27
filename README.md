@@ -28,8 +28,12 @@ cd /to/the/package/i/want/to/dedupe
 
 npm-dedupe-symlinks
 ```
+
 If the command fails, you may need to re-create your symbolic links. Dependencies
 might be lost as well.
+
+Be warned: if you have one module symlinked into multiple projects, not all of
+those projects may work due to missing (deduped) dependencies.
 
 ### Development
 
