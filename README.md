@@ -31,6 +31,16 @@ npm-dedupe-symlinks
 If the command fails, you may need to re-create your symbolic links. Dependencies
 might be lost as well.
 
+### Development
+
+```
+# after cloning, run once
+npm run build
+
+# there's also a watcher
+npm run watch:build
+```
+
 ### FAQ
 
 #### How does it work?
