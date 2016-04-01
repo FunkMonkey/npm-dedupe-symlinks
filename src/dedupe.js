@@ -2,6 +2,7 @@ import Rx from 'rx';
 import path from 'path';
 import fs from 'fs-extra';
 import child_process from 'child_process';
+import compareVersions from 'compare-versions';
 
 import observableFromNodeCallback from './observableFromNodeCallback';
 
@@ -13,6 +14,10 @@ const copy = observableFromNodeCallback( fs.copy );
 const ensureDir = observableFromNodeCallback( fs.ensureDir );
 const remove = observableFromNodeCallback( fs.remove );
 const exists = ( path ) => Rx.Observable.fromCallback( fs.stat, fs, (err, result) => result == null ? false : true )( path ); // TODO check for EOENT
+
+const isWin = /^win/.test( process.platform );
+const isNodeBelow_5_7 = compareVersions( process.versions.node, '5.7.0' ) < 0;
+
 
 const info = console.info.bind( console );
 
@@ -57,8 +62,9 @@ function spawnNPMDedupe( dirPath ) {
   return Rx.Observable.create( observer => {
     info( "deduping", dirPath );
 
-    // we need 'shell' for windows
-    const ls = child_process.spawn( 'npm', ['dedupe'], { cwd: dirPath, env: process.env, shell: true } );
+    // we need 'shell' for windows ( only works in node >= 5.7.0 )
+    const commandName = ( isWin && isNodeBelow_5_7 ) ? 'npm.cmd' : 'npm';
+    const ls = child_process.spawn( commandName, ['dedupe'], { cwd: dirPath, env: process.env, shell: true } );
     observer.onNext( ls );
 
     ls.stdout.on( 'data', data => {
