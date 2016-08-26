@@ -1,6 +1,6 @@
 {
   "name": "npm-dedupe-symlinks",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Dedupes a package even if it contains symbolic links",
   "keywords": [
     "npm",
