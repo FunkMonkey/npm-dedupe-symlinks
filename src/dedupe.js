@@ -31,8 +31,9 @@ function moveNodeModules( from, to ) {
   const fromPath = path.join( from, "node_modules" );
   const toPath = path.join( to, "node_modules" );
 
+  // using clobber, because fs-extra otherwise uses fs.link which will just copy on windows
   return exists( fromPath )
-    .flatMap( doesExist => doesExist ? move(fromPath, toPath)
+    .flatMap( doesExist => doesExist ? move(fromPath, toPath, { clobber: true } )
                                      : Rx.Observable.empty() );
 }
 
